@@ -104,7 +104,11 @@ const orderSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
-
+      CancelId: [{
+        // Changed field name to plural and set type as an array of ObjectIds
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      }],
       longitude: {
         type: String,
       },

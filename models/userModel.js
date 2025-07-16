@@ -21,6 +21,10 @@ const userSchema = mongoose.Schema({
   type: {
     type: Number,
   },
+   empType: {
+    type: Number,
+    default: 0
+  },
   token: {
     type: String,
   },

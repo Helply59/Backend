@@ -1156,7 +1156,11 @@ export const updateProductAdmin = async (req, res) => {
       metaKeywords,
       Category,
       tag, features,
-      specifications, weight, gst, hsn, sku, variant_products, type, canonical, testimonials
+      specifications, weight, gst, hsn, sku, variant_products, type, canonical, testimonials, 
+      how_it_works, 
+      what_is_included, 
+      what_is_excluded, 
+      extra_content 
     } = req.body;
 
     console.log('typp', type);
@@ -1177,7 +1181,11 @@ export const updateProductAdmin = async (req, res) => {
       metaKeywords,
       Category,
       tag, features,
-      specifications, weight, gst, hsn, sku, variant_products, type, canonical, testimonials
+      specifications, weight, gst, hsn, sku, variant_products, type, canonical, testimonials,
+      how_it_works, 
+      what_is_included, 
+      what_is_excluded, 
+      extra_content
     };
 
     const Product = await productModel.findByIdAndUpdate(id, updateFields, {
@@ -1928,6 +1936,135 @@ export const editReviewAdmin = async (req, res) => {
 // for order 
 
 
+export const RejectOrderEmployee = async (req, res) => {
+  try {
+    const { orderId, userId } = req.body; // Changed to camelCase orderId
+
+    // Validation
+    if (!orderId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide both orderId & userId",
+      });
+    }
+
+    // Check if the order exists
+    const order = await orderModel.findById(userId);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Check if the order already has a driver assigned
+    if (order.CancelId.length !== 0) {
+      return res.status(400).json({
+        success: false,
+        message: "This booking has already been Cancel by another driver",
+      });
+    }
+
+    // Update the order with the provided driverId
+    order.CancelId = driverId;
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking cancel by the driver successfully",
+      order,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: `Error while cancel booking: ${error}`,
+      success: false,
+      error,
+    });
+  }
+};
+
+
+export const EmployeeAcceptOrderController = async (req, res) => {
+  const { UserId, OrderId } = req.body;
+
+  console.log('UserId, OrderId',UserId, OrderId)
+  if (!UserId || !OrderId) {
+    return res
+      .status(400)
+      .json({ message: "UserId and OrderId are required", success: false });
+  }
+
+  try {
+    // Find the lead by leadId
+    const Order = await orderModel.findById(OrderId);
+
+    if (!Order) {
+      return res
+        .status(404)
+        .json({ message: "Lead not found", success: false });
+    }
+
+   // Check if order is already accepted
+    if (Order.agentId) {
+      if (Order.agentId.toString() === UserId) {
+        return res
+          .status(400)
+          .json({ message: "You have already accepted this order", success: false });
+      }
+
+      return res
+        .status(400)
+        .json({ message: "Order already accepted by another agent", success: false });
+    }
+
+    // Assign agent to the order
+    Order.agentId = UserId;
+    await Order.save();
+
+    // if (Order.count < Order.agentId.length + 1) {
+    //   return res.status(400).json({
+    //     message: "Cannot add more UserId, limit reached",
+    //     success: false,
+    //   });
+    // }
+
+    // Update user wallet
+
+    // const user = await userModel.findById(BuyId);
+    // if (user.status === 2) {
+    //   return res.status(400).json({
+    //     message: "Account Suspended",
+    //     success: false,
+    //   });
+    // }
+
+  
+
+    // for create trasaction id
+ 
+    // await Promise.all([
+    //   lead.save(),
+    //   transaction.save(),
+    //   user.save(),
+    //   buymodel.save(),
+    // ]);
+
+    return res.status(200).json({
+      message: "Accept Job successfully",
+      success: true,
+      
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      message: `Error occurred during processing: ${error.message}`,
+      success: false,
+      error,
+    });
+  }
+};
+
 
 export const getAllOrderAdmin = async (req, res) => {
 
@@ -1935,10 +2072,13 @@ export const getAllOrderAdmin = async (req, res) => {
     const page = parseInt(req.query.page) || 1; // Current page, default is 1
     const limit = parseInt(req.query.limit) || 10; // Number of documents per page, default is 10
     const searchTerm = req.query.search || ""; // Get search term from the query parameters
-    const statusFilter = req.query.status ? req.query.status.split(',') : []; // Get status filter from the query parameters and split into an array
+    const statusFilter = req.query.status ? req.query.status : null; // Get status filter from the query parameters and split into an array
     const employeeId = req.query.employeeId ; // Get search term from the query parameters
     const employee = req.query.employee; // Get search term from the query parameters
     const Referral = req.query.referral; // Get search term from the query parameters
+    const job = req.query.job || null; // Get search term from the query parameters
+    const statusNoFilter = req.query.nostatus ? req.query.nostatus : null; // Get status filter from the query parameters and split into an array
+    const cancelId = req.query.cancelId ? req.query.cancelId : null; // Get status filter from the query parameters and split into an array
 
     const skip = (page - 1) * limit;
 
@@ -1953,9 +2093,15 @@ export const getAllOrderAdmin = async (req, res) => {
       ];
     }
     // Add status filter to the query if statusFilter is provided
-    if (statusFilter.length > 0) {
+    if (statusFilter) {
       query.status = { $in: statusFilter }; // Use $in operator to match any of the values in the array
     }
+ // Add status filter to the query if statusFilter is provided
+    if (statusNoFilter) {
+      query.status = { $ne: statusNoFilter }; // Use $in operator to match any of the values in the array
+    }
+    
+
     if (employeeId.length > 0 && employeeId !== 'null') {
       query.agentId = employeeId; // Use $in operator to match any of the values in the array
     }
@@ -1973,6 +2119,14 @@ export const getAllOrderAdmin = async (req, res) => {
   query.Referral = { $in: null };  // Is null or empty
 }
 
+if (job === 'All') {
+  query.agentId = { $in: [null, undefined] }; // Matches null or missing
+}
+if(cancelId){
+query.$or = [
+    { CancelId: null },
+    { CancelId: { $exists: false } }
+  ];} 
     const total = await orderModel.countDocuments(query); // Count total documents matching the query
 
     const Order = await orderModel
@@ -2112,7 +2266,7 @@ export const AdminGetAllEmployee_old = async (req, res) => {
   }
 };
 
-export const AdminGetAllEmployee = async (req, res) => { 
+export const AdminGetAllEmployee_distance = async (req, res) => { 
   try {
     // Extract the category (which can be an array of ObjectIds), type, and coordinates from query parameters
     const { category, type, longitude, latitude } = req.query;
@@ -2181,6 +2335,55 @@ export const AdminGetAllEmployee = async (req, res) => {
   }
 };
 
+export const AdminGetAllEmployee = async (req, res) => { 
+  try {
+    // Extract the category (which can be an array of ObjectIds), type, and coordinates from query parameters
+    const { category, type, longitude, latitude,empType } = req.query;
+
+    if (!type ) {
+      return res.status(200).send({
+        message: 'Missing required parameters.',
+        success: false,
+      });
+    }
+
+    // Build the filter object
+    const filter = { type,empType };  // Only fetch employees with the type (assuming "employee")
+
+    // Check if 'category' (which is an array of ObjectIds) is passed
+    if (category) {
+      // Ensure the category is an array
+      const categories = Array.isArray(category) ? category : [category];
+      filter.department = { $in: categories.map(id => new mongoose.Types.ObjectId(id)) };  // Use 'new' to create ObjectIds
+    }
+
+    // Fetch users based on the filter
+    const users = await userModel.find(filter, '_id username department longitude latitude');
+
+    if (!users || users.length === 0) {
+      return res.status(200).send({
+        message: 'No User Found',
+        success: false,
+      });
+    }
+
+ 
+
+    return res.status(200).send({
+      message: 'All User List',
+      proCount: users.length,
+      success: true,
+      users: users,
+    });
+
+  } catch (error) {
+    return res.status(500).send({
+      message: `Error while fetching employees: ${error.message}`,
+      success: false,
+      error,
+    });
+  }
+};
 
 
 export const editOrderEmployeeAdmin = async (req, res) => {
@@ -2244,6 +2447,7 @@ export const editOrderAdmin = async (req, res) => {
       });
     }
 
+    console.log('order',order)
     // const user = order.userId[0]; // Assuming there's only one user associated with the order
 
     // const { email, username, _id } = user; // Extract user email
@@ -2352,6 +2556,7 @@ export const editOrderAdmin = async (req, res) => {
     //     });
     //   }
     // });
+    console.log('updatedOrder',updatedOrder)
 
     return res.status(200).json({
       message: "Order Updated!",
@@ -2410,7 +2615,8 @@ export const editLeadStatusAdmin = async (req, res) => {
 
     updateFields = {
       leadStatus: status,
-      lead : 0
+      lead : 0,
+      status: status,
     };
 
     }
@@ -4604,7 +4810,7 @@ export const profileVendorImage = upload.fields([
   { name: "Doc2", maxCount: 1 },
   { name: "Doc3", maxCount: 1 },
   { name: "ProfileFile", maxCount: 1 },
-]);
+]); 
 
 export const updateVendorProfileUser = async (req, res) => {
   try {

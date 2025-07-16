@@ -379,6 +379,7 @@ export const SignupUserType = async (req, res) => {
   try {
     const {
       type,
+      empType,
       username,
       phone,
       email,
@@ -394,14 +395,16 @@ export const SignupUserType = async (req, res) => {
       coverage
     } = req.body;
 
+    console.log('req.body', req.body)
+    // Check if password exists
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required",
+      });
+    }
 
-    // const {
-    //   profile,
-
-    //   AadhaarFront,
-    //   AadhaarBack,
-    // } = req.files;
-
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Calculate the auto-increment ID
@@ -409,13 +412,13 @@ export const SignupUserType = async (req, res) => {
     let userId;
 
     if (lastUser) {
-      // Convert lastOrder.orderId to a number before adding 1
       const lastUserId = parseInt(lastUser.userId || 1);
       userId = lastUserId + 1;
     } else {
       userId = 1;
     }
 
+    // Create a new user object and save it
     const newUser = new userModel({
       type,
       username,
@@ -432,9 +435,11 @@ export const SignupUserType = async (req, res) => {
       city,
       coverage,
       userId,
+      empType
     });
 
     await newUser.save();
+
     res.status(201).json({
       success: true,
       message: "User signed up successfully",
@@ -442,12 +447,25 @@ export const SignupUserType = async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).send({
-      message: `Error occurred during user signup ${error}`,
+      message: `Error occurred during user signup ${error.message}`,
       success: false,
       error,
     });
   }
 };
+
+
+export const profileDocImage = upload.fields([
+  { name: "Doc1", maxCount: 1 },
+  { name: "Doc2", maxCount: 1 },
+  { name: "Doc3", maxCount: 1 },
+  { name: "Doc4", maxCount: 1 },
+    { name: "Doc5", maxCount: 1 },
+      { name: "Doc6", maxCount: 1 },
+        { name: "Doc7", maxCount: 1 },
+          { name: "Doc8", maxCount: 1 },
+  { name: "profile", maxCount: 1 },
+]);
 
 
 
@@ -763,7 +781,7 @@ export const UsergetAllProducts = async (req, res) => {
   try {
     const products = await productModel.find(
       { status: "true" },
-      "_id title slug"
+      "_id title slug regularPrice salePrice gst"
     );
 
     if (!products) {
@@ -1067,7 +1085,7 @@ export const updateUserAndCreateOrderController = async (req, res) => {
 
     if (mode === "COD") {
       // Send order confirmation email
-      await sendOrderConfirmationEmail(email, username, userId, newOrder);
+      // await sendOrderConfirmationEmail(email, username, userId, newOrder);
       const norder_id = newOrder.orderId;
 
       // block
@@ -1195,7 +1213,7 @@ export const PaymentResponse = async (req, res) => {
       order.payment = 1;
       order.status = "1";
       // // Send order confirmation email
-      await sendOrderConfirmationEmail(email, username, userId, order);
+      // await sendOrderConfirmationEmail(email, username, userId, order);
 
       // block
       console.log(otp);
@@ -1482,6 +1500,7 @@ export const EmailVerify = async (req, res) => {
   // Generate a random OTP
   const OTP = Math.floor(1000 + Math.random() * 9000); // Generate a 4-digit numeric OTP
 
+  console.log('OTP',OTP)
   // Configure nodemailer transporter
   const transporter = nodemailer.createTransport({
     // SMTP configuration
@@ -5114,6 +5133,7 @@ export const AuthUserByID = async (req, res) => {
           phone: existingUser.phone,
           email: existingUser.email,
           type: existingUser.type,
+          empType: existingUser.empType,          
           state: existingUser.state,
           statename: existingUser.statename,
           city: existingUser.city,

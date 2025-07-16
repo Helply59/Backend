@@ -97,6 +97,27 @@ const productSchema = new mongoose.Schema(
         testimonials: {
             type: Object,
         },
+        how_it_works: {
+              type: Array,
+            default: {}
+        },
+
+        what_is_included: {
+              type: Array,
+            default: {}
+        },
+          
+        what_is_excluded: {
+              type: Array,
+            default: {}
+        },
+
+        extra_content: {
+              type: Array,
+            default: {}
+        },
+
+
         userId: {
                  type: mongoose.Schema.Types.ObjectId,
                 ref: "User",

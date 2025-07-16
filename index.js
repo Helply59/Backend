@@ -48,7 +48,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "https://lead.delhiexpert.com", "https://ynb.taxonomy.co.in", "https://ynbadmin.taxonomy.co.in"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://helply.spacedeco.in", "https://adminhelply.spacedeco.in"],
     methods: ["GET", "POST"], // Allow only GET and POST methods
   },
 }); // Create a new instance of Socket.io Server and pass the HTTP server to it
